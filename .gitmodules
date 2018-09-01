@@ -1,0 +1,3 @@
+[submodule "libs/basic"]
+	path = libs/basic
+	url = ../basic.git
