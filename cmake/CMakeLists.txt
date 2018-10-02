@@ -17,10 +17,9 @@ include(ExternalProject)
 ExternalProject_Add(basic 
     SOURCE_DIR ${PROJECT_BINARY_DIR}/../libs/basic/cmake
     CMAKE_ARGS 
-        -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}
+        -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
     TEST_BEFORE_INSTALL ${BASIC_ENABLE_TEST})
 
-include_directories(${PROJECT_BINARY_DIR}/basic/include)
 include_directories (${PROJECT_SOURCE_DIR}/../include)
 
 function(setSourceGroup strSourceGroup strDir)
@@ -58,6 +57,10 @@ function(addTestExecutable strTarget strFolder strDir listOther)
         elseif("${extFile}" MATCHES "\\.main\\.cpp")
             UpperName(${nameFile} upperNameFile)
             add_executable("${strTarget}${upperNameFile}" ${it} ${listOther})
+            target_link_libraries("${strTarget}${upperNameFile}" source)
+            target_include_directories("${strTarget}${upperNameFile}" PUBLIC
+                $<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/basic/include>
+                $<INSTALL_INTERFACE:include>)
             set_property(TARGET "${strTarget}${upperNameFile}" PROPERTY FOLDER ${strFolder})
             add_test(NAME "${strTarget}${upperNameFile}" COMMAND ${strTarget}${upperNameFile})
         endif()
@@ -65,10 +68,16 @@ function(addTestExecutable strTarget strFolder strDir listOther)
 endfunction(addTestExecutable)
 
 file(GLOB_RECURSE LIST_INCLUDE "${PROJECT_SOURCE_DIR}/../include/*")
-file(GLOB_RECURSE LIST_INCLUDE "${PROJECT_BINARY_DIR}/basic/include/*")
+file(GLOB_RECURSE LIST_SRC "${PROJECT_SOURCE_DIR}/../src/*")
 
 setSourceGroup("Header Files" "${PROJECT_SOURCE_DIR}/../include")
+setSourceGroup("Source Files" "${PROJECT_SOURCE_DIR}/../src")
 
 enable_testing()
+add_library(source STATIC ${LIST_INCLUDE} ${LIST_SRC})
 
+target_include_directories(source PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_INSTALL_PREFIX}/basic/include>
+  $<INSTALL_INTERFACE:include>)
+add_dependencies(source basic)
 addTestExecutable("Test" "test" "${PROJECT_SOURCE_DIR}/../test" "${LIST_INCLUDE}")
